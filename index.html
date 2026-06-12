@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -576,25 +577,78 @@ function renderTrain(){
 }
 
 function selectDay(idx){
-  const day=S.plan?.days[idx];if(!day) return;
+  const day=S.plan?.days[idx];
+  if(!day) return;
   document.querySelectorAll('[id^="dchip-"]').forEach((c,i)=>c.classList.toggle('active',i===idx));
-  const det=document.getElementById('day-detail');if(!det) return;
+  const det=document.getElementById('day-detail');
+  if(!det) return;
+
   if(day.type==='descanso'){
-    det.innerHTML='<div class="card" style="text-align:center;padding:32px 20px"><div style="font-size:48px;margin-bottom:12px">💤</div><div style="font-size:18px;font-weight:800;margin-bottom:8px">'+day.name+'</div><div style="font-size:13px;color:var(--text2);line-height:1.6">El músculo crece en el descanso.<br>Duerme 7-9h y consume suficiente proteína.</div></div>';
+    det.innerHTML='<div class="card" style="text-align:center;padding:32px 20px">'+
+      '<div style="font-size:48px;margin-bottom:12px">💤</div>'+
+      '<div style="font-size:18px;font-weight:800;margin-bottom:8px">'+day.name+'</div>'+
+      '<div style="font-size:13px;color:var(--text2);line-height:1.6">El músculo crece en el descanso.<br>Duerme 7-9h y consume suficiente proteína.</div>'+
+      '</div>';
     return;
   }
-  const dJ=JSON.stringify(day).replace(/"/g,'&quot;');
-  det.innerHTML='<div style="padding:0 16px 10px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:18px;font-weight:800;letter-spacing:-.3px">'+day.name+'</div><div style="font-size:12px;color:var(--text2);margin-top:2px">'+day.duration+'min · '+day.exercises.length+' ejercicios</div></div><button class="btn btn-p btn-sm" onclick=\'startWorkout('+dJ+')\'>▶ Iniciar</button></div>'+
-  day.exercises.map((ex,ei)=>'<div class="ex-card"><div class="ex-ch"><div class="ex-ib" style="background:'+(ex.cali?'#30d15820':'var(--accentbg)')+';color:'+(ex.cali?'var(--green)':'var(--accent)')+'\">'+(ex.cali?'🤸':'🏋️')+'</div><div class="ex-meta"><strong>'+ex.name+'</strong><span>'+ex.muscle+' · descanso '+ex.rest+'s</span>'+(ex.tips?'<div class="ex-tip">💡 '+ex.tips+'</div>':'')+'</div>'+(ex.cali?'<div class="badge bg" style="margin-left:auto;flex-shrink:0">Cali</div>':'')+'</div><div class="sets-hdr"><span>#</span><span>Peso</span><span>Reps</span><span>✓</span></div>'+
-  Array.from({length:ex.sets},(_,si)=>'<div class="set-row'+(S.today.sets[ei+\'-\'+si]?\' done-row\':\'\')+\'\" id="sr-'+ei+'-'+si+'"><div class="snum">'+(si+1)+'</div><input type="number" placeholder="kg" value="'+(S.today.sets['w'+ei+'-'+si]||'')+'\" onchange="S.today.sets[\'w'+ei+'-'+si+'\']=this.value"><input type="number" placeholder="'+ex.reps+'\" value="'+(S.today.sets['r'+ei+'-'+si]||'')+'\" onchange="S.today.sets[\'r'+ei+'-'+si+'\']=this.value"><div class="set-chk'+(S.today.sets[ei+\'-\'+si]?\' done\':\'\')+\'\" onclick="toggleSet(\''+ei+'\',\''+si+'\',this)">✓</div></div>').join('')+'</div>').join('')+
-  '<div style="height:20px"></div>';
+
+  // Build header
+  let html = '<div style="padding:0 16px 10px;display:flex;align-items:center;justify-content:space-between">'+
+    '<div><div style="font-size:18px;font-weight:800;letter-spacing:-.3px">'+day.name+'</div>'+
+    '<div style="font-size:12px;color:var(--text2);margin-top:2px">'+day.duration+'min · '+day.exercises.length+' ejercicios</div></div>'+
+    '<button class="btn btn-p btn-sm" id="start-day-btn">▶ Iniciar</button>'+
+    '</div>';
+
+  // Build each exercise
+  day.exercises.forEach(function(ex, ei){
+    var caliColor = ex.cali ? 'var(--green)' : 'var(--accent)';
+    var caliBg = ex.cali ? '#30d15820' : 'var(--accentbg)';
+    html += '<div class="ex-card">'+
+      '<div class="ex-ch">'+
+        '<div class="ex-ib" style="background:'+caliBg+';color:'+caliColor+'">'+(ex.cali?'🤸':'🏋️')+'</div>'+
+        '<div class="ex-meta">'+
+          '<strong>'+ex.name+'</strong>'+
+          '<span>'+ex.muscle+' · descanso '+ex.rest+'s</span>'+
+          (ex.tips ? '<div class="ex-tip">💡 '+ex.tips+'</div>' : '')+
+        '</div>'+
+        (ex.cali ? '<div class="badge bg" style="margin-left:auto;flex-shrink:0">Cali</div>' : '')+
+      '</div>'+
+      '<div class="sets-hdr"><span>#</span><span>Peso</span><span>Reps</span><span>✓</span></div>';
+
+    for(var si=0; si<ex.sets; si++){
+      var key = ei+'-'+si;
+      var isDone = S.today.sets[key] ? true : false;
+      html += '<div class="set-row'+(isDone?' done-row':'')+'" id="sr-'+ei+'-'+si+'">'+
+        '<div class="snum">'+(si+1)+'</div>'+
+        '<input type="number" placeholder="kg" data-key="w'+key+'" value="'+(S.today.sets['w'+key]||'')+'" onchange="S.today.sets[this.dataset.key]=this.value">'+
+        '<input type="number" placeholder="'+ex.reps+'" data-key="r'+key+'" value="'+(S.today.sets['r'+key]||'')+'" onchange="S.today.sets[this.dataset.key]=this.value">'+
+        '<div class="set-chk'+(isDone?' done':'')+'" data-ei="'+ei+'" data-si="'+si+'" data-rest="'+ex.rest+'" onclick="toggleSet(this)">✓</div>'+
+      '</div>';
+    }
+    html += '</div>';
+  });
+
+  html += '<div style="height:20px"></div>';
+  det.innerHTML = html;
+
+  // Attach start button after render
+  var startBtn = document.getElementById('start-day-btn');
+  if(startBtn){
+    startBtn.addEventListener('click', function(){
+      startWorkout(day);
+    });
+  }
 }
 
-function toggleSet(ei,si,el){
-  const k=ei+'-'+si;S.today.sets[k]=!S.today.sets[k];
-  el.classList.toggle('done',S.today.sets[k]);
-  const row=document.getElementById('sr-'+ei+'-'+si);
-  if(row) row.classList.toggle('done-row',S.today.sets[k]);
+function toggleSet(el){
+  var ei = el.dataset.ei;
+  var si = el.dataset.si;
+  var rest = parseInt(el.dataset.rest)||60;
+  var k = ei+'-'+si;
+  S.today.sets[k] = !S.today.sets[k];
+  el.classList.toggle('done', S.today.sets[k]);
+  var row = document.getElementById('sr-'+ei+'-'+si);
+  if(row) row.classList.toggle('done-row', S.today.sets[k]);
   if(S.today.sets[k]) toast('Serie completada','✅');
 }
 
