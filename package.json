@@ -1,0 +1,7 @@
+{
+  "name": "fuerteapp",
+  "version": "3.0.0",
+  "description": "FuerteApp — Hevy-inspired design con Groq + Llama 3.3 70B",
+  "private": true,
+  "engines": { "node": ">=18" }
+}
